@@ -1,9 +1,29 @@
 pipeline {
     agent any
+
     stages {
-        stage('Test') {
+
+        stage("Initial cleanup") {
             steps {
-                echo 'Hello World'
+                dir("${WORKSPACE}") {
+                    deleteDir()
+                }
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                git branch: 'main', url: 'https://github.com/BosunEnoch7/php-todo.git'
+            }
+        }
+
+        stage('Prepare Dependencies') {
+            steps {
+                sh 'mv .env.sample .env'
+                sh 'composer install'
+                sh 'php artisan migrate'
+                sh 'php artisan db:seed'
+                sh 'php artisan key:generate'
             }
         }
     }
