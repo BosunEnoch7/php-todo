@@ -54,7 +54,7 @@ pipeline {
                         "files": [
                             {
                                 "pattern": "php-todo.zip",
-                                "target": "generic-local/php-todo/",
+                                "target": "rockchip/php-todo/",
                                 "props": "type=zip;status=ready"
                             }
                         ]
@@ -62,6 +62,17 @@ pipeline {
 
                     server.upload spec: uploadSpec
                 }
+            }
+        }
+
+        stage('Deploy to Dev Environment') {
+            steps {
+                build job: 'ansible-config-mgt/main',
+                parameters: [
+                    [$class: 'StringParameterValue', name: 'env', value: 'dev']
+                ],
+                propagate: true,
+                wait: true
             }
         }
     }
