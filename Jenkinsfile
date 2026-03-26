@@ -37,27 +37,31 @@ pipeline {
                      numBuilds: '',
                      style: 'line',
                      title: 'Classes'
+            }
+        }
 
-                plot csvFileName: 'phploc.csv',
-                     csvSeries: [[displayTableFlag: false, exclusionValues: '', file: 'build/logs/phploc.csv', inclusionFlag: 'OFF', series: 'Methods', url: '']],
-                     group: 'Code Analysis',
-                     numBuilds: '',
-                     style: 'line',
-                     title: 'Methods'
+        stage('Package Artifact') {
+            steps {
+                sh 'zip -qr php-todo.zip ${WORKSPACE}/*'
+            }
+        }
 
-                plot csvFileName: 'phploc.csv',
-                     csvSeries: [[displayTableFlag: false, exclusionValues: '', file: 'build/logs/phploc.csv', inclusionFlag: 'OFF', series: 'Namespaces', url: '']],
-                     group: 'Code Analysis',
-                     numBuilds: '',
-                     style: 'line',
-                     title: 'Namespaces'
+        stage('Upload Artifact to Artifactory') {
+            steps {
+                script {
+                    def server = Artifactory.server 'artifactory-server'
+                    def uploadSpec = """{
+                        "files": [
+                            {
+                                "pattern": "php-todo.zip",
+                                "target": "generic-local/php-todo/",
+                                "props": "type=zip;status=ready"
+                            }
+                        ]
+                    }"""
 
-                plot csvFileName: 'phploc.csv',
-                     csvSeries: [[displayTableFlag: false, exclusionValues: '', file: 'build/logs/phploc.csv', inclusionFlag: 'OFF', series: 'Lines of Code', url: '']],
-                     group: 'Code Analysis',
-                     numBuilds: '',
-                     style: 'line',
-                     title: 'Lines of Code'
+                    server.upload spec: uploadSpec
+                }
             }
         }
     }
