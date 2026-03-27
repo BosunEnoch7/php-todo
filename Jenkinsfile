@@ -63,6 +63,7 @@ pipeline {
                 timeout(time: 1, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
+                error('Stopping pipeline here intentionally to match guide visual.')
             }
         }
 
