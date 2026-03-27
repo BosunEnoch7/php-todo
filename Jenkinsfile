@@ -40,16 +40,46 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            environment {
+                scannerHome = tool 'SonarQubeScanner'
+            }
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=php-todo \
+                          -Dsonar.projectName=php-todo \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=http://3.87.215.227:9000
+                    """
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            when { branch pattern: "^develop*|^hotfix*|^release*|^main*", comparator: "REGEXP" }
+            steps {
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Package Artifact') {
             steps {
-                sh 'zip -qr php-todo.zip ${WORKSPACE}/*'
+                sh """
+                    cd ${WORKSPACE}
+                    zip -qr php-todo.zip .
+                    ls -lh php-todo.zip
+                """
             }
         }
 
         stage('Upload Artifact to Artifactory') {
             steps {
                 script {
-                    def server = Artifactory.server 'artifactory-server'
+                    def server = Artifactory.server('artifactory-server')
                     def uploadSpec = """{
                         "files": [
                             {
@@ -59,9 +89,19 @@ pipeline {
                             }
                         ]
                     }"""
-
                     server.upload spec: uploadSpec
                 }
+            }
+        }
+
+        stage('Deploy to Dev Environment') {
+            steps {
+                build job: 'ansible-config-mgt/main',
+                    parameters: [
+                        [$class: 'StringParameterValue', name: 'env', value: 'dev']
+                    ],
+                    propagate: true,
+                    wait: true
             }
         }
     }
